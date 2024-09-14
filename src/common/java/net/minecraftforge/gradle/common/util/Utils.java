@@ -93,7 +93,7 @@ public class Utils {
     public static final String FART                    = art("ForgeAutoRenamingTool",   "1.0.6",  "all"   );
     public static final String SRG2SOURCE              = art("Srg2Source",              "8.0.9",  "fatjar");
     public static final String SIDESTRIPPER            = art("mergetool",               "1.1.7",  "fatjar");
-    public static final String INSTALLERTOOLS          = art("installertools",          "1.3.2",  "fatjar");
+    public static final String INSTALLERTOOLS          = art("installertools",          "1.4.4",  "fatjar");
     public static final String JARCOMPATIBILITYCHECKER = art("JarCompatibilityChecker", "0.1.28", "all"   );
 
     public static final long ZIPTIME = 628041600000L;
