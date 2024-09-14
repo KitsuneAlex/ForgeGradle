@@ -15,13 +15,13 @@ import net.minecraftforge.gradle.userdev.util.DeobfuscatingRepo;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingVersionUtils;
 import net.minecraftforge.gradle.userdev.util.DependencyRemapper;
 import net.minecraftforge.gradle.userdev.util.MavenPomUtils;
+import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.MinimalExternalModuleDependency;
-import org.gradle.api.artifacts.ModuleIdentifier;
+import org.gradle.api.artifacts.dsl.ExternalModuleDependencyVariantSpec;
 import org.gradle.api.artifacts.repositories.ArtifactRepository;
-import org.gradle.api.internal.artifacts.dependencies.DependencyVariant;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.publish.tasks.GenerateModuleMetadata;
@@ -62,23 +62,19 @@ public class DependencyManagementExtension extends GroovyObjectSupport {
     public Dependency deobf(Object dependency, Closure<?> configure) {
         Dependency baseDependency = project.getDependencies().create(dependency, configure);
         project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(baseDependency);
-
         return remapper.remap(baseDependency);
     }
 
     public Dependency deobf(Provider<MinimalExternalModuleDependency> provider) {
         MinimalExternalModuleDependency dependency = provider.get();
+        project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(dependency);
+        return remapper.remap(dependency);
+    }
 
-        ModuleIdentifier module = dependency.getModule();
-        if (dependency instanceof DependencyVariant) {
-            DependencyVariant variant = (DependencyVariant) dependency;
-            return deobf(String.format("%s:%s:%s:%s",
-                module.getGroup(),
-                module.getName(),
-                dependency.getVersion(),
-                variant.getClassifier()));
-        }
-        return deobf(String.format("%s:%s:%s", module.getGroup(), module.getName(), dependency.getVersion()));
+    public Dependency deobf(Provider<MinimalExternalModuleDependency> provider, Action<? super ExternalModuleDependencyVariantSpec> variantSpec) {
+        MinimalExternalModuleDependency dependency = project.getDependencies().variantOf(provider, variantSpec).get();
+        project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(dependency);
+        return remapper.remap(dependency);
     }
 
     @SuppressWarnings({"ConstantConditions", "unchecked"})
