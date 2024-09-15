@@ -29,7 +29,6 @@ import net.minecraftforge.gradle.userdev.tasks.JarJar;
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingRepo;
 import net.minecraftforge.gradle.userdev.util.Deobfuscator;
-import net.minecraftforge.gradle.userdev.util.DependencyRemapper;
 import net.minecraftforge.srgutils.IMappingFile;
 
 import org.apache.commons.lang3.StringUtils;
@@ -104,8 +103,7 @@ public class UserDevPlugin implements Plugin<Project> {
         // Create extension for dependency remapping
         // Can't create at top-level or put in `minecraft` ext due to configuration name conflict
         final Deobfuscator deobfuscator = new Deobfuscator(project, Utils.getCache(project, "deobf_dependencies"));
-        final DependencyRemapper remapper = new DependencyRemapper(project, deobfuscator);
-        DependencyManagementExtension fgExtension = project.getExtensions().create(DependencyManagementExtension.EXTENSION_NAME, DependencyManagementExtension.class, project, remapper, new DeobfuscatingRepo(project, internalObfConfiguration, deobfuscator));
+        DependencyManagementExtension fgExtension = project.getExtensions().create(DependencyManagementExtension.EXTENSION_NAME, DependencyManagementExtension.class, project, new DeobfuscatingRepo(project, internalObfConfiguration, deobfuscator));
         JarJarProjectExtension jarJarExtension = project.getExtensions().create(JarJarProjectExtension.EXTENSION_NAME, JarJarProjectExtension.class, project);
 
         final TaskContainer tasks = project.getTasks();
@@ -253,8 +251,6 @@ public class UserDevPlugin implements Plugin<Project> {
                     m.artifact();
                 });
             });
-
-            remapper.attachMappings(extension.getMappings().get());
 
             if (fgExtension.getDeobfuscatingRepo().getResolvedOrigin() == null) {
                 project.getLogger().error("DeobfRepo attempted to resolve an origin repo early but failed, this may cause issues with some IDEs");

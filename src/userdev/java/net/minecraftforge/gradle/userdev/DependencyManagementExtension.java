@@ -11,15 +11,13 @@ import groovy.util.Node;
 import groovy.util.NodeList;
 import net.minecraftforge.gradle.common.util.BaseRepo;
 import net.minecraftforge.gradle.common.util.MinecraftExtension;
+import net.minecraftforge.gradle.userdev.dependency.RemappedExternalModuleDependency;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingRepo;
 import net.minecraftforge.gradle.userdev.util.DeobfuscatingVersionUtils;
-import net.minecraftforge.gradle.userdev.util.DependencyRemapper;
 import net.minecraftforge.gradle.userdev.util.MavenPomUtils;
 import org.gradle.api.Action;
 import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.artifacts.MinimalExternalModuleDependency;
+import org.gradle.api.artifacts.*;
 import org.gradle.api.artifacts.dsl.ExternalModuleDependencyVariantSpec;
 import org.gradle.api.artifacts.repositories.ArtifactRepository;
 import org.gradle.api.provider.Provider;
@@ -34,17 +32,27 @@ import java.util.stream.Collectors;
 public class DependencyManagementExtension extends GroovyObjectSupport {
     public static final String EXTENSION_NAME = "fg";
     private final Project project;
-    private final DependencyRemapper remapper;
     private final DeobfuscatingRepo deobfuscatingRepo;
     private final ArtifactRepository repository;
 
-    public DependencyManagementExtension(Project project, DependencyRemapper remapper, DeobfuscatingRepo deobfuscatingRepo) {
+    public DependencyManagementExtension(Project project, DeobfuscatingRepo deobfuscatingRepo) {
         this.project = project;
-        this.remapper = remapper;
         this.deobfuscatingRepo = deobfuscatingRepo;
         this.repository = new BaseRepo.Builder()
                 .add(deobfuscatingRepo)
                 .attach(project, "bundled_deobf_repo");
+    }
+
+    private Dependency createRemappedDependency(Dependency dependency) {
+        if(dependency instanceof ExternalModuleDependency) {
+            return new RemappedExternalModuleDependency((ExternalModuleDependency) dependency);
+        }
+        if(dependency instanceof FileCollectionDependency) {
+            project.getLogger().warn("Dependency {} will not be deobfuscated. Use a flatDir repository instead: https://docs.gradle.org/current/userguide/declaring_repositories.html#sub:flat_dir_resolver", dependency);
+        } else {
+            project.getLogger().warn("Dependency {} is not being deobfuscated", dependency);
+        }
+        return dependency;
     }
 
     public DeobfuscatingRepo getDeobfuscatingRepo() {
@@ -62,19 +70,19 @@ public class DependencyManagementExtension extends GroovyObjectSupport {
     public Dependency deobf(Object dependency, Closure<?> configure) {
         Dependency baseDependency = project.getDependencies().create(dependency, configure);
         project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(baseDependency);
-        return remapper.remap(baseDependency);
+        return createRemappedDependency(baseDependency);
     }
 
     public Dependency deobf(Provider<MinimalExternalModuleDependency> provider) {
-        MinimalExternalModuleDependency dependency = provider.get();
-        project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(dependency);
-        return remapper.remap(dependency);
+        MinimalExternalModuleDependency baseDependency = provider.get();
+        project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(baseDependency);
+        return createRemappedDependency(baseDependency);
     }
 
     public Dependency deobf(Provider<MinimalExternalModuleDependency> provider, Action<? super ExternalModuleDependencyVariantSpec> variantSpec) {
-        MinimalExternalModuleDependency dependency = project.getDependencies().variantOf(provider, variantSpec).get();
-        project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(dependency);
-        return remapper.remap(dependency);
+        MinimalExternalModuleDependency baseDependency = project.getDependencies().variantOf(provider, variantSpec).get();
+        project.getConfigurations().getByName(UserDevPlugin.OBF).getDependencies().add(baseDependency);
+        return createRemappedDependency(baseDependency);
     }
 
     @SuppressWarnings({"ConstantConditions", "unchecked"})
